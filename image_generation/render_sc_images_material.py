@@ -286,7 +286,7 @@ def main(args):
       output_image=semantic_img_path,
       output_scene=semantic_scene_path,
       output_blendfile=semantic_blend_path,
-      change_type='color',
+      change_type='material',
     )
 
     # only save stuffs when semantic and nonsemantic changes succeeded
@@ -784,9 +784,12 @@ def apply_change(default_objects, scene_struct, args, camera, change_type):
     size_mapping = list(properties['sizes'].items())
 
   shape_color_combos = None
+  possible_shape_to_color = None
   if args.shape_color_combos_json is not None:
     with open(args.shape_color_combos_json, 'r') as f:
-      shape_color_combos = list(json.load(f).items())
+      possible_shape_to_color = json.load(f)
+      shape_color_combos = list(possible_shape_to_color.items())
+
 
   def render_object(obj):
     obj_name_out = obj['shape']
@@ -843,9 +846,15 @@ def apply_change(default_objects, scene_struct, args, camera, change_type):
       new_obj = copy.deepcopy(obj)
       if i == object_idx:
         curr_color_name = new_obj['color']
+        obj_name_out = obj['shape']
+        if possible_shape_to_color is not None:
+          possible_color_choices = possible_shape_to_color[obj_name_out]
         while True:
           new_color_name, new_rgba = random.choice(list(color_name_to_rgba.items()))
-          if new_color_name != curr_color_name:
+          if possible_shape_to_color is not None:
+            if new_color_name != curr_color_name and new_color_name in possible_color_choices:
+              break
+          elif new_color_name != curr_color_name:
             break
         new_obj['color'] = new_color_name
       new_objects.append(new_obj)
